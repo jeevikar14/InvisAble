@@ -1,0 +1,1 @@
+InvisAble is an innovative project that leverages AR and VR technologies, along with TTS (Text-to-Speech) technology, to support blind students in education, enhancing accessibility and enriching their learning experiences.
