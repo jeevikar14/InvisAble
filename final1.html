@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Speech</title>
+    <!-- Link to the resized favicon -->
+    <link rel="icon" href="https://hippothemes.com/demo/child-education-wordpress-theme/wp-content/uploads/sites/2/2017/09/favicon_new-1.png" type="image/png" sizes="16x16">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s, color 0.3s;
+        }
+        #text-input {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: none;
+            background: #f7f7f7;
+            color: #333;
+            font-family: 'Poppins', sans-serif;
+            white-space: pre-wrap;
+            overflow-y: auto;
+            max-height: 300px;
+        }
+        #text-input:focus {
+            outline: none;
+            border: 2px solid #FF69B4;
+        }
+        button {
+            background-color: #FF69B4;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+        button:hover {
+            background-color: #FF1493;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+        }
+        input[type="file"]::-webkit-file-upload-button {
+            background: #FF1493;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #FF69B4;
+        }
+        progress {
+            width: 100%;
+            height: 20px;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        progress::-webkit-progress-bar {
+            background-color: #f7f7f7;
+        }
+        progress::-webkit-progress-value {
+            background-color: #FF69B4;
+        }
+        .slider-container {
+            margin: 20px 0;
+        }
+        .slider-container label {
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .slider-container input {
+            width: 80%;
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: #333;
+            color: #fff;
+        }
+        body.dark-mode .container {
+            background: rgba(40, 40, 40, 0.9);
+        }
+        body.dark-mode button {
+            background-color: #FF1493;
+        }
+        body.dark-mode input[type="file"] {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        body.dark-mode progress::-webkit-progress-bar {
+            background-color: #333;
+        }
+        body.dark-mode progress::-webkit-progress-value {
+            background-color: #FF1493;
+        }
+        body.dark-mode h1 {
+            color: #FF1493;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Text to Speech Converter</h1>
+        <input type="file" id="file-input" accept=".txt,.pdf" onchange="loadFile()">
+        <div id="text-input" contenteditable="true" placeholder="File content will appear here..."></div>
+        <div class="button-group">
+            <button onclick="convertTextToSpeech()">Speak</button>
+            <button onclick="pauseSpeech()">Pause</button>
+            <button onclick="resumeSpeech()">Resume</button>
+            <button onclick="stopSpeech()">Stop</button>
+        </div>
+
+        <!-- Slider for Speed -->
+        <div class="slider-container">
+            <label for="speed-slider">Speed</label>
+            <input type="range" id="speed-slider" min="0.1" max="2" step="0.1" value="1" onchange="updateSpeed()">
+            <span id="speed-value">1</span>
+        </div>
+
+        <!-- Slider for Volume -->
+        <div class="slider-container">
+            <label for="volume-slider">Volume</label>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1" onchange="updateVolume()">
+            <span id="volume-value">1</span>
+        </div>
+
+        <progress id="progress-bar" value="0" max="100"></progress>
+
+        <!-- Navigation to Schedule Page -->
+        <button onclick="window.location.href='schedule.html'">Go to Schedule</button>
+
+        <!-- Dark Mode Toggle Button -->
+        <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
+
+        <!-- New Navigation Button for page.html -->
+        <button onclick="window.location.href='page.html'">Daily Activity</button>
+        <!-- Navigation to 3D Page -->
+        <button onclick="window.location.href='3d.html'">Explore 3D Page</button>
+
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <script>
+        let speechSynthesisUtterance;
+        let currentPosition = 0;
+        let isPaused = false;
+        let speechRate = 1; // Default speech rate
+        let speechVolume = 1; // Default volume
+
+        async function loadFile() {
+            const fileInput = document.getElementById('file-input');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const fileType = file.type;
+
+                if (fileType === "text/plain") {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('text-input').innerText = e.target.result;
+                    };
+                    reader.readAsText(file);
+                } else if (fileType === "application/pdf") {
+                    const pdfData = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                    let text = "";
+
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        const content = await page.getTextContent();
+                        text += content.items.map(item => item.str).join(" ") + "\n";
+                    }
+
+                    document.getElementById('text-input').innerText = text;
+                } else {
+                    alert("Unsupported file type. Please upload a .txt or .pdf file.");
+                }
+            } else {
+                alert("Please select a file.");
+            }
+        }
+
+        function sanitizeText(text) {
+            return text.replace(/[^a-zA-Z0-9\s.,!?]/g, "");
+        }
+
+        function updateProgress(currentPosition, totalLength) {
+            const progressBar = document.getElementById('progress-bar');
+            const progress = Math.min((currentPosition / totalLength) * 100, 100);
+            progressBar.value = progress;
+        }
+
+        function scrollToCurrentPosition() {
+            const textInput = document.getElementById('text-input');
+            const lines = textInput.innerText.split("\n");
+            const lineHeight = parseInt(window.getComputedStyle(textInput).lineHeight);
+            const currentLine = lines.slice(0, currentPosition).join("\n").split("\n").length;
+
+            textInput.scrollTop = (currentLine - 1) * lineHeight;
+        }
+
+        function convertTextToSpeech() {
+            const textInput = document.getElementById('text-input');
+            let text = textInput.innerText;
+
+            if (text.trim() === "") {
+                alert("Please enter or load some text.");
+                return;
+            }
+
+            text = sanitizeText(text);
+
+            speechSynthesis.cancel(); // Clear any ongoing speech
+
+            const remainingText = text.slice(currentPosition);
+            speechSynthesisUtterance = new SpeechSynthesisUtterance(remainingText);
+            speechSynthesisUtterance.lang = 'en-US';
+            speechSynthesisUtterance.rate = speechRate; // Set the speech rate
+            speechSynthesisUtterance.volume = speechVolume; // Set the volume
+
+            speechSynthesisUtterance.onboundary = (event) => {
+                if (event.charIndex !== undefined) {
+                    currentPosition += event.charIndex;
+                    updateProgress(currentPosition, text.length);
+                    scrollToCurrentPosition();
+                }
+            };
+
+            speechSynthesisUtterance.onend = () => {
+                currentPosition = 0; // Reset position on completion
+                updateProgress(currentPosition, text.length);
+            };
+
+            window.speechSynthesis.speak(speechSynthesisUtterance);
+        }
+
+        function pauseSpeech() {
+            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+                window.speechSynthesis.pause();
+                isPaused = true;
+            }
+        }
+
+        function resumeSpeech() {
+            if (isPaused) {
+                window.speechSynthesis.resume();
+                isPaused = false;
+            }
+        }
+
+        function stopSpeech() {
+            window.speechSynthesis.cancel();
+            currentPosition = 0;
+            updateProgress(0, 1); // Reset progress
+        }
+
+        function updateSpeed() {
+            const slider = document.getElementById('speed-slider');
+            speechRate = parseFloat(slider.value);
+            document.getElementById('speed-value').textContent = speechRate;
+
+            // Update the speech rate if already speaking
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+                convertTextToSpeech();
+            }
+        }
+
+        function updateVolume() {
+            const slider = document.getElementById('volume-slider');
+            speechVolume = parseFloat(slider.value);
+            document.getElementById('volume-value').textContent = speechVolume;
+
+            // Update the speech volume if already speaking
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+                convertTextToSpeech();
+            }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+        }
+    </script>
+</body>
+</html>
