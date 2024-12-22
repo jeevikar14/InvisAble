@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Image Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            width: 80vw;
+            height: 80vh;
+            perspective: 1500px; /* Increased perspective for better 3D effect */
+        }
+
+        .image-3d-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform: rotateX(0deg) rotateY(0deg);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .image-3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.2s ease-in-out;
+            transform: rotateX(0deg) rotateY(0deg);
+        }
+
+        .image-3d img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 15px;
+        }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .front  { transform: translateZ(50px); }
+        .back   { transform: rotateY(180deg) translateZ(50px); }
+        .left   { transform: rotateY(-90deg) translateZ(50px); }
+        .right  { transform: rotateY(90deg) translateZ(50px); }
+        .top    { transform: rotateX(90deg) translateZ(50px); }
+        .bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+        input[type="file"] {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            border: none;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        input[type="file"]:hover {
+            background-color: #f1f1f1;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <input type="file" id="imageInput" accept="image/*" onchange="loadImage(event)">
+    <div class="image-3d-wrapper" id="image3DWrapper">
+        <div class="image-3d" id="image3D">
+            <div class="face front" id="front"></div>
+            <div class="face back" id="back"></div>
+            <div class="face left" id="left"></div>
+            <div class="face right" id="right"></div>
+            <div class="face top" id="top"></div>
+            <div class="face bottom" id="bottom"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Variable to track mouse position for 3D effect
+    let mouseX = 0;
+    let mouseY = 0;
+
+    // Function to load the image when user selects a file
+    function loadImage(event) {
+        const image = event.target.files[0];
+        if (image) {
+            const imageURL = URL.createObjectURL(image);
+
+            // Get all faces and set the image
+            const faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+            faces.forEach(face => {
+                const faceElement = document.getElementById(face);
+                faceElement.style.backgroundImage = `url(${imageURL})`;
+                faceElement.style.backgroundSize = 'cover';
+                faceElement.style.backgroundPosition = 'center';
+            });
+        }
+    }
+
+    // Update mouse position for 3D effect
+    document.addEventListener('mousemove', (event) => {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        
+        // Get the mouse position relative to the center of the screen
+        mouseX = (event.clientX - centerX) / centerX;
+        mouseY = (event.clientY - centerY) / centerY;
+
+        // Apply the 3D rotation effect based on mouse movement
+        const wrapper = document.getElementById("image3DWrapper");
+        wrapper.style.transform = `rotateX(${mouseY * 20}deg) rotateY(${mouseX * 20}deg)`;
+    });
+
+    // Optional: Adjust for smoother interaction when mouse leaves the container
+    document.getElementById("image3DWrapper").addEventListener('mouseleave', () => {
+        const wrapper = document.getElementById("image3DWrapper");
+        wrapper.style.transform = `rotateX(0deg) rotateY(0deg)`;
+    });
+</script>
+
+</body>
+</html>
