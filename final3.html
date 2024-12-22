@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Learning for Blind Children</title>
+    <link rel="icon" href="https://hippothemes.com/demo/child-education-wordpress-theme/wp-content/uploads/sites/2/2017/09/favicon_new-1.png" type="image/png" sizes="16x16">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #FFB6C1, #FFC0CB);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #FF69B4;
+        }
+        .button {
+            background-color: #FF69B4;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 10px;
+        }
+        .button:hover {
+            background-color: #FF1493;
+        }
+        .color-btn {
+            width: 200px;
+            height: 200px;
+            margin: 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 18px;
+            display: inline-block;
+        }
+        #color-feedback {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        #notes {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #notes p {
+            margin: 0;
+            font-size: 16px;
+        }
+        #joke-box {
+            margin-top: 20px;
+            font-size: 18px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Learning for Blind Children</h1>
+
+        <!-- Note-taking Section -->
+        <div>
+            <button class="button" id="startNotesBtn" onclick="startNoteTaking()">Start Taking Notes</button>
+            <button class="button" id="stopNotesBtn" onclick="stopNoteTaking()" disabled>Stop Taking Notes</button>
+            <button class="button" id="playNotesBtn" onclick="playNotes()">Play Notes</button>
+            <p>Press the button and start speaking. Your words will be transcribed below:</p>
+            <div id="notes"></div>
+        </div>
+
+        <!-- Color Identification Section -->
+        <div>
+            <button class="button" onclick="startColorIdentification()">Start Color Identification</button>
+            <button class="button" id="stopGameBtn" onclick="stopColorIdentification()" disabled>Stop Game</button>
+            <div id="color-container" style="display: none;">
+                <button class="color-btn" id="color1" onclick="checkColorChoice('color1')"></button>
+                <button class="color-btn" id="color2" onclick="checkColorChoice('color2')"></button>
+            </div>
+            <p id="color-feedback"></p>
+        </div>
+
+        <!-- Joke Section -->
+        <div>
+            <button class="button" onclick="tellJoke()">Tell Me a Joke</button>
+            <div id="joke-box"></div>
+        </div>
+    </div>
+
+    <!-- Laugh sound to play after joke -->
+    <audio id="laugh-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+
+    <script>
+        const colors = ["red", "green", "blue", "yellow", "orange", "purple", "pink", "black", "white", "brown"];
+        let correctColor = "";
+        let selectedColor = "";
+        let colorChoiceMade = false;
+        let recognizing = false;
+        let noteTakingActive = false;
+        let recognition;
+        let notesText = ""; // Store the recorded notes
+        let gameActive = false; // Flag to track if the color game is active
+
+        // Start Color Identification Game
+        function startColorIdentification() {
+            if (gameActive) return; // Prevent starting a new game if one is already active
+            gameActive = true; // Mark the game as active
+            document.getElementById("stopGameBtn").disabled = false; // Enable the stop button
+            document.getElementById("color-feedback").textContent = ""; // Clear feedback
+            document.getElementById("color-container").style.display = "block"; // Show color buttons
+            startNewRound(); // Start the first round
+        }
+
+        // Start a new round of color identification
+        function startNewRound() {
+            // Randomly select two colors
+            const colorCombination = generateColorCombination();
+
+            // Set the correct color to one of the two colors
+            correctColor = colorCombination.correctColor;
+
+            // Update the button colors
+            document.getElementById("color1").style.backgroundColor = colorCombination.color1;
+            document.getElementById("color2").style.backgroundColor = colorCombination.color2;
+
+            // Speak the instruction
+            const instruction = new SpeechSynthesisUtterance("Please select the color " + correctColor);
+            window.speechSynthesis.speak(instruction);
+        }
+
+        // Generate a random combination of two different colors
+        function generateColorCombination() {
+            const color1Index = Math.floor(Math.random() * colors.length);
+            let color2Index = Math.floor(Math.random() * colors.length);
+
+            // Ensure that the two colors are different
+            while (color1Index === color2Index) {
+                color2Index = Math.floor(Math.random() * colors.length);
+            }
+
+            // Return the selected colors and correct color
+            return {
+                color1: colors[color1Index],
+                color2: colors[color2Index],
+                correctColor: colors[Math.random() < 0.5 ? color1Index : color2Index]
+            };
+        }
+
+        // Handle user's color choice
+        function checkColorChoice(choice) {
+            if (!gameActive || colorChoiceMade) return; // Prevent multiple selections if game is inactive
+
+            colorChoiceMade = true; // Prevent further clicks
+
+            // Determine which button was clicked
+            selectedColor = choice === 'color1' ? document.getElementById("color1").style.backgroundColor :
+                            document.getElementById("color2").style.backgroundColor;
+
+            let feedbackMessage = "";
+
+            // Check if the selected color matches the correct color
+            if (selectedColor === correctColor) {
+                feedbackMessage = "Correct! You selected the right color!";
+            } else {
+                feedbackMessage = "Oops! That's not the correct color. Try again!";
+            }
+
+            // Speak feedback
+            const feedbackSpeech = new SpeechSynthesisUtterance(feedbackMessage);
+            window.speechSynthesis.speak(feedbackSpeech);
+
+            // Display feedback
+            document.getElementById("color-feedback").textContent = feedbackMessage;
+
+            // Reset the game for a new round after a short delay
+            setTimeout(function() {
+                colorChoiceMade = false;
+                if (gameActive) startNewRound(); // Start a new round if the game is still active
+            }, 3000);
+        }
+
+        // Stop Color Identification Game
+        function stopColorIdentification() {
+            gameActive = false;
+            document.getElementById("stopGameBtn").disabled = true; // Disable stop button
+            document.getElementById("color-container").style.display = "none"; // Hide color buttons
+            document.getElementById("color-feedback").textContent = "Game stopped.";
+        }
+
+        // Fetch and tell a random joke with a laugh sound
+        function tellJoke() {
+            fetch('https://official-joke-api.appspot.com/random_joke')
+                .then(response => response.json())
+                .then(data => {
+                    const joke = data.setup + " " + data.punchline;
+                    document.getElementById("joke-box").textContent = joke;
+
+                    const jokeSpeech = new SpeechSynthesisUtterance(joke);
+                    window.speechSynthesis.speak(jokeSpeech);
+
+                    // Play laugh sound after the joke has been spoken
+                    jokeSpeech.onend = function() {
+                        const laughSound = document.getElementById("laugh-sound");
+                        laughSound.play(); // Explicitly trigger the laugh sound playback here
+                    };
+                })
+                .catch(err => console.error('Failed to fetch joke:', err));
+        }
+
+        // Start Note Taking with Voice to Text Conversion
+        function startNoteTaking() {
+            document.getElementById("startNotesBtn").disabled = true;
+            document.getElementById("stopNotesBtn").disabled = false;
+            const notesContainer = document.getElementById("notes");
+            notesContainer.innerHTML = ""; // Clear previous notes
+            notesText = ""; // Reset stored notes text
+            startListeningForNotes(notesContainer);
+        }
+
+        function startListeningForNotes(notesContainer) {
+            if (recognizing) return; // Prevent multiple instances
+
+            recognizing = true;
+
+            // Initialize SpeechRecognition if not already initialized
+            if (!('webkitSpeechRecognition' in window)) {
+                alert("Speech Recognition is not supported in this browser.");
+                return;
+            }
+
+            recognition = new webkitSpeechRecognition(); // Initialize the SpeechRecognition API
+            recognition.lang = "en-US";
+            recognition.continuous = true; // Keep listening for speech
+            recognition.interimResults = true; // Allow interim results for better responsiveness
+
+            recognition.onstart = function() {
+                console.log("Listening for notes...");
+            };
+
+            recognition.onresult = function(event) {
+                const note = event.results[event.results.length - 1][0].transcript;
+                notesText = note + " " + notesText; // Prepend the new note to the existing notes
+                const newNote = document.createElement("p");
+                newNote.textContent = note;
+                notesContainer.insertBefore(newNote, notesContainer.firstChild); // Insert at the beginning
+            };
+
+            recognition.onerror = function(event) {
+                console.log("Error occurred in recognition:", event.error);
+            };
+
+            recognition.onend = function() {
+                recognizing = false;
+            };
+
+            recognition.start(); // Start recognition
+        }
+
+        function stopNoteTaking() {
+            if (recognition) {
+                recognition.stop();
+            }
+            document.getElementById("startNotesBtn").disabled = false;
+            document.getElementById("stopNotesBtn").disabled = true;
+        }
+
+        // Play the recorded notes aloud
+        function playNotes() {
+            if (notesText) {
+                const notesSpeech = new SpeechSynthesisUtterance(notesText);
+                window.speechSynthesis.speak(notesSpeech);
+            } else {
+                alert("No notes recorded!");
+            }
+        }
+    </script>
+</body>
+</html>
