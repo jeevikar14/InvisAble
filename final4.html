@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Image Viewer</title>
+    <link rel="icon" href="https://hippothemes.com/demo/child-education-wordpress-theme/wp-content/uploads/sites/2/2017/09/favicon_new-1.png" type="image/png" sizes="16x16">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            width: 80vw;
+            height: 80vh;
+            perspective: 1500px;
+        }
+
+        .image-3d-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform: rotateX(0deg) rotateY(0deg) scale(1);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .image-3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .front  { transform: translateZ(50px); }
+        .back   { transform: rotateY(180deg) translateZ(50px); }
+        .left   { transform: rotateY(-90deg) translateZ(50px); }
+        .right  { transform: rotateY(90deg) translateZ(50px); }
+        .top    { transform: rotateX(90deg) translateZ(50px); }
+        .bottom { transform: rotateX(-90deg) translateZ(50px); }
+
+        input[type="file"], .reset-btn {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            border: none;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+        }
+
+        input[type="file"]:hover, .reset-btn:hover {
+            background-color: #f1f1f1;
+        }
+
+        input[type="file"]:focus, .reset-btn:focus {
+            outline: 3px solid #ff4747;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" role="region" aria-labelledby="imageViewerTitle">
+    <h1 id="imageViewerTitle">3D Image Viewer</h1>
+    <p>Upload an image to explore it in 3D. Use the arrow keys to rotate and `+`/`-` to zoom.</p>
+    <input type="file" id="imageInput" accept="image/*" onchange="loadImage(event)" aria-label="Upload an image">
+    <button class="reset-btn" onclick="resetView()">Reset View</button>
+    <div class="image-3d-wrapper" id="image3DWrapper" role="img">
+        <div class="image-3d" id="image3D">
+            <div class="face front" id="front"></div>
+            <div class="face back" id="back"></div>
+            <div class="face left" id="left"></div>
+            <div class="face right" id="right"></div>
+            <div class="face top" id="top"></div>
+            <div class="face bottom" id="bottom"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rotationX = 0;
+    let rotationY = 0;
+    let scale = 1;
+
+    // Load the image onto the cube
+    function loadImage(event) {
+        const image = event.target.files[0];
+        if (image) {
+            const imageURL = URL.createObjectURL(image);
+            const faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+            faces.forEach(face => {
+                const faceElement = document.getElementById(face);
+                faceElement.style.backgroundImage = `url(${imageURL})`;
+                faceElement.style.backgroundSize = 'cover';
+                faceElement.style.backgroundPosition = 'center';
+            });
+        }
+    }
+
+    // Reset view to default
+    function resetView() {
+        rotationX = 0;
+        rotationY = 0;
+        scale = 1;
+        updateTransform();
+    }
+
+    // Update transform styles
+    function updateTransform() {
+        const wrapper = document.getElementById("image3DWrapper");
+        wrapper.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg) scale(${scale})`;
+    }
+
+    // Keyboard interaction for rotation and zoom
+    document.addEventListener('keydown', (event) => {
+        switch (event.key) {
+            case 'ArrowUp':
+                rotationX -= 10;
+                break;
+            case 'ArrowDown':
+                rotationX += 10;
+                break;
+            case 'ArrowLeft':
+                rotationY -= 10;
+                break;
+            case 'ArrowRight':
+                rotationY += 10;
+                break;
+            case '+':
+                scale = Math.min(scale + 0.1, 2); // Limit zoom-in
+                break;
+            case '-':
+                scale = Math.max(scale - 0.1, 0.5); // Limit zoom-out
+                break;
+            default:
+                return;
+        }
+        updateTransform();
+    });
+</script>
+
+</body>
+</html>
