@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Reading</title>
+    <link rel="icon" href="https://hippothemes.com/demo/child-education-wordpress-theme/wp-content/uploads/sites/2/2017/09/favicon_new-1.png" type="image/png" sizes="16x16">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            background: linear-gradient(to right, #FFB6C1, #FFC0CB);
+            margin: 0;
+            padding: 0;
+            color: #333;
+            transition: background 0.3s, color 0.3s;
+        }
+        .container {
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s, color 0.3s;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            color: #FF69B4;
+        }
+        input, button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: none;
+            background-color: #FF69B4;
+            color: #fff;
+            cursor: pointer;
+        }
+        input[type="number"] {
+            width: 100px;
+        }
+        button:hover {
+            background-color: #FF1493;
+        }
+        .schedule-info {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+        .day-checkboxes {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .day-checkboxes label {
+            margin: 0 5px;
+        }
+
+        /* Light/Dark Mode Styles */
+        body.light-mode {
+            background: linear-gradient(to right, #FFB6C1, #FFC0CB);
+            color: #333;
+        }
+        body.dark-mode {
+            background: #333;
+            color: #fff;
+        }
+        .container.light-mode {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .container.dark-mode {
+            background: rgba(40, 40, 40, 0.9);
+        }
+        
+        /* Media Queries for responsiveness */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 20px;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            input, button {
+                width: 100%;
+                font-size: 14px;
+            }
+        }
+
+        /* Button to toggle light/dark mode */
+        .mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #FF1493;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .mode-toggle:hover {
+            background-color: #FF69B4;
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <button class="mode-toggle" onclick="toggleMode()">Toggle Dark Mode</button>
+    <div class="container">
+        <h1>Schedule Reading</h1>
+        <p class="schedule-info">Select the days for automatic reading and set the time.</p>
+        
+        <form id="schedule-form">
+            <label for="start-time">Start Time (HH:MM):</label><br>
+            <input type="time" id="start-time" required><br><br>
+
+            <label for="duration">Duration (minutes):</label><br>
+            <input type="number" id="duration" min="1" required><br><br>
+
+            <label for="book-file">Select Book File:</label><br>
+            <input type="file" id="book-file" accept=".txt,.pdf" required><br><br>
+
+            <label for="days">Select Days:</label><br>
+            <div class="day-checkboxes">
+                <label><input type="checkbox" id="monday"> Monday</label>
+                <label><input type="checkbox" id="tuesday"> Tuesday</label>
+                <label><input type="checkbox" id="wednesday"> Wednesday</label>
+                <label><input type="checkbox" id="thursday"> Thursday</label>
+                <label><input type="checkbox" id="friday"> Friday</label>
+                <label><input type="checkbox" id="saturday"> Saturday</label>
+                <label><input type="checkbox" id="sunday"> Sunday</label>
+            </div>
+
+            <button type="submit">Schedule Reading</button>
+        </form>
+
+        <!-- Updated Back to Home Button -->
+        <button onclick="window.location.href='first.html'">Back to Home</button>
+    </div>
+
+    <script>
+        let bookContent = ""; // To store the content of the book
+
+        // Load the book content (either .txt or .pdf)
+        document.getElementById('book-file').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            const fileType = file.type;
+
+            if (fileType === "text/plain") {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    bookContent = event.target.result;
+                };
+                reader.readAsText(file);
+            } else if (fileType === "application/pdf") {
+                const pdfData = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                let text = "";
+
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    text += content.items.map(item => item.str).join(" ") + "\n";
+                }
+
+                bookContent = text;
+            } else {
+                alert("Unsupported file type. Please upload a .txt or .pdf file.");
+            }
+        });
+
+        document.getElementById('schedule-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const startTime = document.getElementById('start-time').value;
+            const duration = document.getElementById('duration').value;
+            const days = getSelectedDays();
+
+            if (startTime && duration && days.length > 0 && bookContent.trim() !== "") {
+                scheduleReading(startTime, duration, days);
+            } else {
+                alert("Please select all fields: time, duration, days, and a book.");
+            }
+        });
+
+        function getSelectedDays() {
+            const selectedDays = [];
+            if (document.getElementById('monday').checked) selectedDays.push(1); // Monday
+            if (document.getElementById('tuesday').checked) selectedDays.push(2); // Tuesday
+            if (document.getElementById('wednesday').checked) selectedDays.push(3); // Wednesday
+            if (document.getElementById('thursday').checked) selectedDays.push(4); // Thursday
+            if (document.getElementById('friday').checked) selectedDays.push(5); // Friday
+            if (document.getElementById('saturday').checked) selectedDays.push(6); // Saturday
+            if (document.getElementById('sunday').checked) selectedDays.push(0); // Sunday
+
+            return selectedDays;
+        }
+
+        function scheduleReading(startTime, duration, days) {
+            const currentDate = new Date();
+            const startTimeArray = startTime.split(":");
+            const startHour = parseInt(startTimeArray[0]);
+            const startMinute = parseInt(startTimeArray[1]);
+
+            // Calculate the first trigger time (today or next day)
+            let triggerTime = new Date();
+            triggerTime.setHours(startHour, startMinute, 0, 0);
+
+            if (triggerTime <= currentDate) {
+                triggerTime.setDate(triggerTime.getDate() + 1); // Set for the next day if the time has already passed today
+            }
+
+            // Schedule the reading for the selected days
+            for (let i = 0; i < days.length; i++) {
+                const nextDay = getNextDayOfWeek(triggerTime, days[i]);
+                setAlarm(nextDay, duration);
+            }
+
+            alert(`Reading scheduled on selected days at ${startTime} for ${duration} minutes.`);
+
+            // Save the schedule in localStorage
+            localStorage.setItem('scheduledStartTime', startTime);
+            localStorage.setItem('scheduledDuration', duration);
+            localStorage.setItem('scheduledDays', JSON.stringify(days));
+            localStorage.setItem('bookContent', bookContent);
+            localStorage.setItem('lastScheduledTime', triggerTime);
+        }
+
+        function getNextDayOfWeek(date, dayOfWeek) {
+            const currentDay = date.getDay();
+            const diff = (dayOfWeek + 7 - currentDay) % 7; // Calculate the difference in days
+            date.setDate(date.getDate() + diff);
+            return date;
+        }
+
+        function setAlarm(triggerTime, duration) {
+            const currentDate = new Date();
+            const delay = triggerTime - currentDate;
+
+            if (delay > 0) {
+                setTimeout(function() {
+                    startReading(duration);
+                }, delay);
+            }
+        }
+
+        function startReading(duration) {
+            const bookText = localStorage.getItem('bookContent');
+            if (!bookText) {
+                alert("No book selected.");
+                return;
+            }
+
+            let remainingText = bookText;
+            const speechSynthesisUtterance = new SpeechSynthesisUtterance(remainingText);
+            speechSynthesisUtterance.lang = 'en-US';
+
+            // Set a duration limit for reading
+            const durationMs = duration * 60 * 1000; // Convert minutes to milliseconds
+            const startTime = Date.now();
+
+            speechSynthesisUtterance.onend = () => {
+                const elapsedTime = Date.now() - startTime;
+                if (elapsedTime < durationMs) {
+                    startReading(duration - Math.floor(elapsedTime / 60000)); // Continue if the time is not up
+                }
+            };
+
+            speechSynthesis.speak(speechSynthesisUtterance);
+        }
+
+        function toggleMode() {
+            const body = document.body;
+            const container = document.querySelector('.container');
+            const currentMode = body.classList.contains('light-mode') ? 'light' : 'dark';
+
+            if (currentMode === 'light') {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                container.classList.remove('light-mode');
+                container.classList.add('dark-mode');
+                document.querySelector('.mode-toggle').textContent = 'Toggle Light Mode';
+            } else {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                container.classList.remove('dark-mode');
+                container.classList.add('light-mode');
+                document.querySelector('.mode-toggle').textContent = 'Toggle Dark Mode';
+            }
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+</body>
+</html>
